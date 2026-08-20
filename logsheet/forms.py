@@ -1345,6 +1345,17 @@ class CommercialTicketIssueForm(forms.Form):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
     )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if not (
+            cleaned_data.get("amount_paid") is not None
+            or (cleaned_data.get("gift_certificate_number") or "").strip()
+        ):
+            raise forms.ValidationError(
+                "Provide an amount paid or a gift certificate number."
+            )
+        return cleaned_data
+
 
 class CommercialTicketEditForm(forms.ModelForm):
     class Meta:
@@ -1367,3 +1378,14 @@ class CommercialTicketEditForm(forms.ModelForm):
             ),
             "remarks": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not (
+            cleaned_data.get("amount_paid") is not None
+            or (cleaned_data.get("gift_certificate_number") or "").strip()
+        ):
+            raise forms.ValidationError(
+                "Provide an amount paid or a gift certificate number."
+            )
+        return cleaned_data
