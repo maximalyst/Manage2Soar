@@ -11,6 +11,17 @@ User = get_user_model()
 
 
 @pytest.mark.django_db
+def test_login_shows_invalid_credentials_error(client):
+    response = client.post(
+        reverse("login"),
+        {"username": "missing-user", "password": "wrong-password"},
+    )
+
+    assert response.status_code == 200
+    assert b"Please enter a correct username and password" in response.content
+
+
+@pytest.mark.django_db
 def test_biography_view_shows_biography(client):
     user = User.objects.create_user(
         username="jdoe",
