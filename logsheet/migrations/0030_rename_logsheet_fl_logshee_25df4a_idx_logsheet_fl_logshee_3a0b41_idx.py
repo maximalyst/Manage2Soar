@@ -10,9 +10,40 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name="flight",
-            new_name="logsheet_fl_logshee_3a0b41_idx",
-            old_name="logsheet_fl_logshee_25df4a_idx",
+        migrations.SeparateDatabaseAndState(
+            # Some deployed databases recorded migration 0023 without creating
+            # its index. Create the target index when there is nothing to rename.
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        DO $$
+                        BEGIN
+                            IF to_regclass('logsheet_fl_logshee_25df4a_idx') IS NOT NULL THEN
+                                ALTER INDEX logsheet_fl_logshee_25df4a_idx
+                                RENAME TO logsheet_fl_logshee_3a0b41_idx;
+                            ELSIF to_regclass('logsheet_fl_logshee_3a0b41_idx') IS NULL THEN
+                                CREATE INDEX logsheet_fl_logshee_3a0b41_idx
+                                ON logsheet_flight (logsheet_id, id);
+                            END IF;
+                        END $$;
+                    """,
+                    reverse_sql="""
+                        DO $$
+                        BEGIN
+                            IF to_regclass('logsheet_fl_logshee_3a0b41_idx') IS NOT NULL THEN
+                                ALTER INDEX logsheet_fl_logshee_3a0b41_idx
+                                RENAME TO logsheet_fl_logshee_25df4a_idx;
+                            END IF;
+                        END $$;
+                    """,
+                ),
+            ],
+            state_operations=[
+                migrations.RenameIndex(
+                    model_name="flight",
+                    new_name="logsheet_fl_logshee_3a0b41_idx",
+                    old_name="logsheet_fl_logshee_25df4a_idx",
+                ),
+            ],
         ),
     ]
