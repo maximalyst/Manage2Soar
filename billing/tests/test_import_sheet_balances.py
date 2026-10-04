@@ -80,9 +80,9 @@ def run(path, *extra):
 def standard_csv(tmp_path, active_owes, active_credit, inactive):
     return write_csv(
         tmp_path,
-        "Dana Owes,dana@example.com,1001,Active,($577.75)\n"
-        'Casey Credit,CASEY@example.com,1002,Active,"$1,354.00"\n'
-        "Gale Gone,gale@example.com,,Inactive,($263.00)\n",
+        "Dana Owes,dana@example.com,1001,Active,($120.50)\n"
+        'Casey Credit,CASEY@example.com,1002,Active,"$1,250.00"\n'
+        "Gale Gone,gale@example.com,,Inactive,($75.00)\n",
     )
 
 
@@ -98,30 +98,30 @@ def test_commit_flips_sheet_sign_and_writes_off_inactive(
 ):
     run(standard_csv, "--commit")
 
-    assert get_balance(active_owes.billing_ledger) == Decimal("577.75")
-    assert get_balance(active_credit.billing_ledger) == Decimal("-1354.00")
+    assert get_balance(active_owes.billing_ledger) == Decimal("120.50")
+    assert get_balance(active_credit.billing_ledger) == Decimal("-1250.00")
     assert get_balance(inactive.billing_ledger) == Decimal("0.00")
 
     opening = inactive.billing_ledger.entries.get(kind=LedgerEntry.Kind.OPENING_BALANCE)
     assert opening.effect == LedgerEntry.Effect.DEBIT
-    assert opening.amount == Decimal("263.00")
+    assert opening.amount == Decimal("75.00")
     assert opening.effective_date == CUTOVER
     writeoff = inactive.billing_ledger.entries.get(kind=LedgerEntry.Kind.CREDIT)
-    assert writeoff.amount == Decimal("263.00")
+    assert writeoff.amount == Decimal("75.00")
     assert "true-up at rejoin" in writeoff.member_description
 
 
 def test_inactive_credit_balance_is_written_off_with_a_charge(
     treasurer, tmp_path, inactive
 ):
-    path = write_csv(tmp_path, "Gale Gone,gale@example.com,,Inactive,$224.05\n")
+    path = write_csv(tmp_path, "Gale Gone,gale@example.com,,Inactive,$40.25\n")
 
     run(path, "--commit")
 
     ledger = inactive.billing_ledger
     assert get_balance(ledger) == Decimal("0.00")
     assert ledger.entries.get(kind=LedgerEntry.Kind.MANUAL_CHARGE).amount == Decimal(
-        "224.05"
+        "40.25"
     )
 
 
@@ -200,7 +200,7 @@ def test_expected_total_mismatch_stops_import(treasurer, standard_csv):
 
 
 def test_expected_total_counts_only_active_members(treasurer, standard_csv):
-    run(standard_csv, "--expect-active-total", "776.25", "--commit")
+    run(standard_csv, "--expect-active-total", "1129.50", "--commit")
 
     assert LedgerEntry.objects.count() == 4
 
@@ -241,16 +241,16 @@ def test_commit_fails_cleanly_when_billing_disabled(treasurer, standard_csv):
 
 def test_missing_inactive_member_is_created_on_commit(treasurer, tmp_path):
     path = write_csv(
-        tmp_path, "Jacob Former,jacob@example.com,2001,Terminated,$35.00\n"
+        tmp_path, "Terry Former,terry@example.com,2001,Terminated,$15.00\n"
     )
 
     assert "NEW Inactive member" in run(path, "--create-missing-inactive")
-    assert not Member.objects.filter(email="jacob@example.com").exists()
+    assert not Member.objects.filter(email="terry@example.com").exists()
 
     run(path, "--create-missing-inactive", "--commit")
 
-    created = Member.objects.get(email="jacob@example.com")
-    assert created.username == "jacob.former"
+    created = Member.objects.get(email="terry@example.com")
+    assert created.username == "terry.former"
     assert created.membership_status == "Inactive"
     assert created.SSA_member_number == "2001"
     assert not created.is_active
@@ -259,7 +259,7 @@ def test_missing_inactive_member_is_created_on_commit(treasurer, tmp_path):
     assert created.billing_ledger.entries.count() == 2
 
     run(path, "--create-missing-inactive", "--commit")
-    assert Member.objects.filter(email="jacob@example.com").count() == 1
+    assert Member.objects.filter(email="terry@example.com").count() == 1
 
 
 def test_missing_active_member_is_never_created(treasurer, tmp_path):
