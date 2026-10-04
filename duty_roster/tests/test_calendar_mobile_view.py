@@ -318,11 +318,12 @@ def test_agenda_shows_confirmed_reservation_aircraft_member_and_times(client):
 
     schedule = response.context["agenda_reservation_schedule_by_date"][day]
     assert schedule["count"] == 3
+    # Configured slots carry their clock range and sort by real start time.
     assert [period["label"] for period in schedule["periods"]] == [
-        "Afternoon",
         "9:15 AM–11:45 AM",
+        "Afternoon (2:00 PM-4:00 PM)",
     ]
-    assert len(schedule["periods"][1]["reservations"]) == 2
+    assert len(schedule["periods"][0]["reservations"]) == 2
 
 
 @pytest.mark.django_db

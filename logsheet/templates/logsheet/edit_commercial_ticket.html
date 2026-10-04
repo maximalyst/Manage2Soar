@@ -18,6 +18,9 @@
 
       <form method="post">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label" for="{{ form.ride_type.id_for_label }}">Ride Type</label>
@@ -27,6 +30,7 @@
           <div class="col-md-4">
             <label class="form-label" for="{{ form.amount_paid.id_for_label }}">Amount Paid</label>
             {{ form.amount_paid }}
+            <div class="form-text">Required unless a gift certificate number is provided.</div>
             {% if form.amount_paid.errors %}<div class="text-danger small mt-1">{{ form.amount_paid.errors.0 }}</div>{% endif %}
           </div>
           <div class="col-md-4">

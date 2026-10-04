@@ -118,13 +118,54 @@ def test_issue_ticket_post_auto_numbers_sequentially(client, django_user_model):
     client.force_login(user)
     response = client.post(
         reverse("logsheet:issue_commercial_ticket"),
-        data={"ride_type": CommercialTicket.RideType.STANDARD},
+        data={
+            "ride_type": CommercialTicket.RideType.STANDARD,
+            "amount_paid": "100.00",
+        },
     )
 
     assert response.status_code == 302
     assert response.url == reverse("logsheet:issue_commercial_ticket")
     new_ticket = CommercialTicket.objects.exclude(ticket_number="T-000009").get()
     assert new_ticket.ticket_number == "T-000010"
+
+
+@pytest.mark.django_db
+def test_issue_ticket_requires_payment_or_gift_certificate(client, django_user_model):
+    SiteConfiguration.objects.create(
+        club_name="Test Club",
+        domain_name="example.org",
+        club_abbreviation="TC",
+        commercial_rides_enabled=True,
+    )
+    user = django_user_model.objects.create_user(
+        username="settlement_treasurer",
+        password="testpass123",
+        email="settlement-treasurer@example.com",
+        membership_status="Full Member",
+        treasurer=True,
+    )
+
+    client.force_login(user)
+    response = client.post(
+        reverse("logsheet:issue_commercial_ticket"),
+        data={"ride_type": CommercialTicket.RideType.STANDARD},
+    )
+
+    assert response.status_code == 200
+    assert b"Provide an amount paid or a gift certificate number." in response.content
+    assert CommercialTicket.objects.count() == 0
+
+    response = client.post(
+        reverse("logsheet:issue_commercial_ticket"),
+        data={
+            "ride_type": CommercialTicket.RideType.STANDARD,
+            "gift_certificate_number": "GC-001",
+        },
+    )
+
+    assert response.status_code == 302
+    assert CommercialTicket.objects.get().gift_certificate_number == "GC-001"
 
 
 @pytest.mark.django_db
@@ -234,7 +275,10 @@ def test_issue_ticket_post_handles_allocation_validation_error(
     client.force_login(user)
     response = client.post(
         reverse("logsheet:issue_commercial_ticket"),
-        data={"ride_type": CommercialTicket.RideType.STANDARD},
+        data={
+            "ride_type": CommercialTicket.RideType.STANDARD,
+            "amount_paid": "100.00",
+        },
     )
 
     assert response.status_code == 200
